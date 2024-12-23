@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+service UserService {
+  // Metodo per la registrazione dell'utente
+  rpc RegisterUser(RegisterUserRequest) returns (UserResponse);
+
+  // Metodo per l'aggiornamento del ticker
+  rpc UpdateUserTicker (UserRequest) returns (UserResponse);
+
+  // Metodo per cancellare un utente
+  rpc DeleteUser(DeleteUserRequest) returns (UserResponse);
+
+  // Metodo per ottenere l'ultimo valore del ticker
+  rpc GetLatestValue(EmailRequest) returns (UserResponse);
+
+  // Metodo per il calcolo della media
+  rpc CalculateAverage(AverageRequest) returns (AverageResponse);
+
+  // Metodo per soglia
+  rpc UpdateThreshold(UpdateThresholdRequest) returns (UserResponse);
+
+}
+
+message RegisterUserRequest {
+  string email = 1;
+  string ticker = 2;
+  float high_value = 3; 
+  float low_value = 4;
+}
+
+// Messaggio di richiesta per cancellare un utente
+message DeleteUserRequest {
+  string email = 1;
+}
+
+// Messaggio di richiesta per ottenere l'ultimo valore del ticker
+message EmailRequest {  // Nuovo messaggio per GetLatestValue
+  string email = 1;
+}
+
+
+// Richiesta per calcolare la media
+message AverageRequest {
+    string email = 1;
+    int32 count = 2;
+}
+
+// Risposta per calcolare la media
+message AverageResponse {
+    bool success = 1;
+    string message = 2;
+    float average = 3;
+}
+
+
+message UserResponse {
+  bool success = 1;
+  string message = 2;
+  string timestamp = 3;         
+  float value = 4;             
+}
+
+
+message UserRequest {
+    string email = 1;
+    string ticker = 2;    
+}
+
+
+
+message UpdateThresholdRequest {
+    string email = 1;
+    float high_value = 2;
+    float low_value = 3;
+}

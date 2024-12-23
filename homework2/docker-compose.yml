@@ -1,0 +1,165 @@
+version: '3.7'
+services:
+  grpc_server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server  
+    container_name: grpc_server
+    ports:
+      - "50051:50051"
+    environment:
+      - MYSQL_HOST=host.docker.internal
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=root
+      - MYSQL_DATABASE=db
+      - MYSQL_PORT=3306
+      - PYTHONUNBUFFERED=1
+    networks:
+      - app-network
+
+  data-collector:
+    build:
+      context: .
+      dockerfile: Dockerfile.data_collector  
+    container_name: data_collector
+    depends_on:
+      - kafka-broker-1
+      - kafka-broker-2
+      - kafka-broker-3
+    environment:
+      - MYSQL_HOST=host.docker.internal
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=root
+      - MYSQL_DATABASE=db
+      - MYSQL_PORT=3306
+      - PYTHONUNBUFFERED=1
+    networks:
+      - app-network
+    restart: always
+
+  grpc_client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    container_name: grpc_client
+    depends_on:
+      - grpc_server
+    ports:
+      - "5000:5000"  # Espone il server Flask sulla porta 5000
+    networks:
+      - app-network
+
+  alert-system:
+    build:
+      context: .
+      dockerfile: Dockerfile.alert_system
+    container_name: alert_system
+    depends_on:
+      - kafka-broker-1
+      - kafka-broker-2
+      - kafka-broker-3
+    networks:
+      - app-network
+
+  alert-notifier-system:
+    build:
+      context: .
+      dockerfile: Dockerfile.alert_notifier_system
+    container_name: alert_notifier_system
+    depends_on:
+      - kafka-broker-1
+      - kafka-broker-2
+      - kafka-broker-3
+    networks:
+      - app-network
+
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - app-network
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:latest
+    hostname: schema-registry
+    depends_on:
+      - kafka-broker-1
+      - kafka-broker-2
+      - kafka-broker-3
+    ports:
+      - "8081:8081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: 'zookeeper:2181'
+      SCHEMA_REGISTRY_LISTENERS: http://schema-registry:8081
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka-broker-2:9092,PLAINTEXT_INTERNAL://localhost:29092
+      SCHEMA_REGISTRY_DEBUG: 'true'
+    networks:
+      - app-network
+
+  kafka-broker-1:
+    image: confluentinc/cp-kafka:latest
+    hostname: kafka-broker-1
+    container_name: kafka-broker-1
+    ports:
+      - "19092:19092"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-broker-1:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+    networks:
+      - app-network
+
+
+  kafka-broker-2:
+    image: confluentinc/cp-kafka:latest
+    hostname: kafka-broker-2
+    container_name: kafka-broker-2
+    ports:
+      - "29092:29092"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-broker-2:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+    networks:
+      - app-network
+
+  kafka-broker-3:
+    image: confluentinc/cp-kafka:latest
+    hostname: kafka-broker-3
+    container_name: kafka-broker-3
+    ports:
+      - "39092:39092"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 3
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-broker-3:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+
+  

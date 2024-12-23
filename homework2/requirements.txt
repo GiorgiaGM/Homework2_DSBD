@@ -1,0 +1,8 @@
+flask==2.3.0
+grpcio==1.68.0
+grpcio-tools==1.68.0
+mysql-connector-python==8.0.27
+yfinance==0.1.74
+protobuf==5.28.1
+confluent-kafka==2.6.1
+werkzeug>=2.2.2
